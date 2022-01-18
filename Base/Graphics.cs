@@ -121,7 +121,6 @@ namespace ConsoleGameLib.Base
 				envData[i] = new CharInfo();
 
 			rect = new SmallRect() { Left = 0, Top = 0, Right = width, Bottom = height };
-
 		}
 		public bool Print()
 		{
