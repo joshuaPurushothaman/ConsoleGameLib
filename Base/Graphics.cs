@@ -7,15 +7,7 @@ namespace ConsoleGameLib.Base
 {
 	[SupportedOSPlatform("windows")]
 	public class Graphics
-	{		
-		[DllImport("Kernel32.dll", SetLastError = true)]
-		private static extern bool WriteConsoleOutputW(
-			SafeFileHandle hConsoleOutput,
-			CharInfo[] lpBuffer,
-			Coord dwBufferSize,
-			Coord dwBufferCoord,
-			ref SmallRect lpWriteRegion);
-
+	{
 		[StructLayout(LayoutKind.Sequential)]
 		public struct Coord
 		{
@@ -29,105 +21,43 @@ namespace ConsoleGameLib.Base
 			}
 		};
 
-		[StructLayout(LayoutKind.Explicit, CharSet = CharSet.Unicode)]
-		public struct CharUnion
-		{
-			[FieldOffset(0)] public char UnicodeChar;
-			[FieldOffset(0)] public byte AsciiChar;
-		}
-
-		[StructLayout(LayoutKind.Explicit, CharSet = CharSet.Unicode)]
 		public struct CharInfo
 		{
-			[FieldOffset(0)] public CharUnion Char;
-			[FieldOffset(2)] public ushort Attributes;
+			public char Char;
+			public ConsoleColor fg;
+			public ConsoleColor bg;
 
-			public ConsoleColor ForegroundColor => (ConsoleColor)((this.Attributes & 0x0F));
-			public ConsoleColor BackgroundColor => (ConsoleColor)((this.Attributes & 0xF0) >> 4);
-
-			public CharInfo(char character = ' ', ConsoleColor? foreground = null, ConsoleColor? background = null)
+			public CharInfo(char Char, ConsoleColor fg, ConsoleColor bg)
 			{
-				this.Char = new CharUnion() { UnicodeChar = character };
-				this.Attributes = (ushort)((int)(foreground ?? 0) | (((ushort)(background ?? 0)) << 4));
-			}
-
-			public CharInfo(byte character, ConsoleColor? foreground = null, ConsoleColor? background = null)
-			{
-				this.Char = new CharUnion() { AsciiChar = character };
-				this.Attributes = (ushort)((int)(foreground ?? 0) | (((ushort)(background ?? 0)) << 4));
-			}
-
-			public void SetColor(ConsoleColor fg, ConsoleColor bg)
-			{
-				Attributes = (ushort)(((int)bg << 4) | (int)fg);
-			}
-
-			public static bool operator ==(CharInfo first, CharInfo second)
-			{
-				return first.Char.UnicodeChar == second.Char.UnicodeChar
-					&& first.Char.AsciiChar == second.Char.AsciiChar
-					&& first.Attributes == second.Attributes;
-			}
-
-			public static bool operator !=(CharInfo first, CharInfo second)
-			{
-				return !(first == second);
-			}
-
-			public override bool Equals(object? other)
-			{
-				if (other == null)
-					return false;
-				else
-					return this == (CharInfo)other;
-			}
-
-			public override int GetHashCode()
-			{
-				/// ugh...
-				return Char.UnicodeChar << 4 | Attributes;
-			}
-
-			public void SetChar(char c)
-			{
-				this.Char.UnicodeChar = c;
+				this.Char = Char;
+				this.fg = fg;
+				this.bg = bg;
 			}
 		}
 
-		WindowsConsole console;
-		CharInfo[] envData;
-		SmallRect rect;
-
-		[StructLayout(LayoutKind.Sequential)]
-		public struct SmallRect
-		{
-			public short Left;
-			public short Top;
-			public short Right;
-			public short Bottom;
-		}
-
-
+		private WindowsConsole console;
+		private CharInfo[] envData;
 		public short width, height;
 		public Graphics(WindowsConsole console)
 		{
 			this.console = console;
-			this.width = console.width;
-			this.height = console.height;
+			width = console.width;
+			height = console.height;
 
 			envData = new CharInfo[width * height];
 
 			for (int i = 0; i < envData.Length; i++)
 				envData[i] = new CharInfo();
-
-			rect = new SmallRect() { Left = 0, Top = 0, Right = width, Bottom = height };
 		}
-		public bool Print()
+		public void Print()
 		{
-			return WriteConsoleOutputW(console.handle, envData,
-				new Coord() { X = width, Y = height },
-				new Coord() { X = 0, Y = 0 },
-				ref rect);
+			Console.SetCursorPosition(0, 0);
+			foreach (var c in envData)
+			{
+				Console.ForegroundColor = c.fg;
+				Console.BackgroundColor = c.bg;
+				Console.Write(c.Char);
+			}
 		}
 
 		public void Fill(CharInfo ci)
@@ -135,7 +65,8 @@ namespace ConsoleGameLib.Base
 			for (int i = 0; i < envData.Length; i++)
 			{
 				envData[i].Char = ci.Char;
-				envData[i].Attributes = ci.Attributes;
+				envData[i].fg = ci.fg;
+				envData[i].bg = ci.bg;
 			}
 		}
 
@@ -164,8 +95,9 @@ namespace ConsoleGameLib.Base
 			{
 				if (info[i] != '\n')
 				{
-					envData[Index(x, y, width)].SetChar(info[i]);
-					envData[Index(x, y, width)].SetColor(ConsoleColor.White, ConsoleColor.Black);
+					envData[Index(x, y, width)].Char = info[i];
+					envData[Index(x, y, width)].fg = ConsoleColor.White;
+					envData[Index(x, y, width)].bg = ConsoleColor.Black;
 					x++;    //	moves 1 to the right... One must be careful when intentionally modifying values that were originally passed as params.
 				}
 				else

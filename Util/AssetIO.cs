@@ -24,7 +24,7 @@ namespace ConsoleGameLib.Util
 
 			for (int y = 2; y < height + 2; y++)
 				for (int x = 0; x < width; x++)
-					asset[Index(x, y - 2, width)].Char.UnicodeChar = lines[y][x];
+					asset[Index(x, y - 2, width)].Char = lines[y][x];
 
 
 
@@ -32,7 +32,8 @@ namespace ConsoleGameLib.Util
 				for (int x = 0; x < lines[y].Length; x += 2)
 				{
 					var twoHexChars = lines[y].Substring(x, 2);
-					asset[Index(x / 2, y - (height + 3), width)].Attributes = Convert.ToUInt16(twoHexChars, 16);
+					asset[Index(x / 2, y - (height + 3), width)].fg = (ConsoleColor) twoHexChars[0];
+					asset[Index(x / 2, y - (height + 3), width)].bg = (ConsoleColor) twoHexChars[1];
 				}
 
 			return asset;
@@ -85,15 +86,15 @@ namespace ConsoleGameLib.Util
 
 		private static CharInfo GetCIFromPixel(Color pixel)
 		{
-			//char[] asciiChars = { ' ', '░', '▒', '▓', '█' };
-			//int gray = (pixel.R + pixel.G + pixel.B) / 3;
+			char[] asciiChars = { ' ', '░', '▒', '▓', '█' };
+			int gray = (pixel.R + pixel.G + pixel.B) / 3;
 
-			//char charToUse = asciiChars[(gray * (asciiChars.Length - 1) / 255)];
+			char charToUse = asciiChars[(gray * (asciiChars.Length - 1) / 255)];
 
-			//var closestConsoleColor = GetClosestConsoleColor(pixel);
-			//return new CharInfo(charToUse, closestConsoleColor, closestConsoleColor);
+			var closestConsoleColor = GetClosestConsoleColor(pixel);
+			return new CharInfo(charToUse, closestConsoleColor, closestConsoleColor);
 
-			return new CharInfo('░', ConsoleColor.Yellow, ConsoleColor.DarkGreen);
+			//return new CharInfo('░', ConsoleColor.Yellow, ConsoleColor.DarkGreen);
 		}
 
 		private static ConsoleColor GetClosestConsoleColor(Color pixel)
@@ -131,7 +132,7 @@ namespace ConsoleGameLib.Util
 
 			for (int i = 0; i < info.Length; i++)
 			{
-				await assetFile.WriteAsync(info[i].Char.UnicodeChar);
+				await assetFile.WriteAsync(info[i].Char);
 
 				if ((i + 1) % width == 0)
 					await assetFile.WriteLineAsync();
@@ -141,7 +142,8 @@ namespace ConsoleGameLib.Util
 
 			for (int i = 0; i < info.Length; i++)
 			{
-				await assetFile.WriteAsync(info[i].Attributes.ToString("X2"));
+				await assetFile.WriteAsync(info[i].fg.ToString("X"));
+				await assetFile.WriteAsync(info[i].bg.ToString("X"));
 
 				if ((i + 1) % width == 0)
 					assetFile.WriteLine();

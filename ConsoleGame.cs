@@ -58,7 +58,8 @@ namespace ConsoleGameLib
 				input.Update();
 
 				graphics.Clear();
-				shouldContinue = (await Task.WhenAll(Update(), Task.Run(graphics.Print)))[0];
+				shouldContinue = await Update();
+				graphics.Print();
 			}
 		}
 	}

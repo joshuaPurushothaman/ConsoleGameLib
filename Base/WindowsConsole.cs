@@ -24,8 +24,18 @@ namespace ConsoleGameLib.Base
 			SafeFileHandle hConsoleHandle,
 			ulong dwMode);
 
+		[DllImport("Kernel32.dll", SetLastError = true)]
+		private extern static bool GetConsoleMode(
+			SafeFileHandle hConsoleHandle,
+			ref ulong dwMode);
+
+		[DllImport("Kernel32.dll")]
+		public static extern uint GetLastError();
+
 		public readonly short width;
 		public readonly short height;
+
+		private ulong originalMode;
 
 		public readonly SafeFileHandle handle = CreateFile("CONOUT$", 0x40000000, 2, IntPtr.Zero, FileMode.Open, 0, IntPtr.Zero);
 		public WindowsConsole(short width, short height)
@@ -46,7 +56,14 @@ namespace ConsoleGameLib.Base
 
 			Console.SetWindowSize(width, height);
 
+			GetConsoleMode(handle, ref originalMode);
+
 			SetConsoleMode(handle, 0x0080 | 0x0008 | 0x0010 | 0x0200 | 0x0004); // ENABLE_EXTENDED_FLAGS | ENABLE_WINDOW_INPUT | ENABLE_MOUSE_INPUT | ENABLE_VIRTUAL_TERMINAL_INPUT | _ENABLE_VIRTUAL_TERMINAL_PROCESSING
-		}		
+		}
+
+		~WindowsConsole()
+		{
+			SetConsoleMode(handle, originalMode);
+		}
 	}
 }
